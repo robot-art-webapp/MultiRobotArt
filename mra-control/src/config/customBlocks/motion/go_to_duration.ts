@@ -1,41 +1,45 @@
-import { RobartBlockDefinition } from '../BlockDefinition';
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+import {type RobartBlockDefinition} from '../BlockDefinition';
 import Blockly from 'blockly';
+import * as SIM from '@MRAControl/state/simulatorCommands';
+import {Simulation} from '@MRAControl/layout/simulation/Simulation';
 
-export const block_go_to: RobartBlockDefinition = {
-  name: "go_to",
-  block: {
-    init: function () {
-      this.appendDummyInput()
-        .appendField("go to X:")
-        .appendField(new Blockly.FieldNumber(0), "x_pos")
-        .appendField("Y:")
-        .appendField(new Blockly.FieldNumber(0), "y_pos")
-        .appendField("Z:")
-        .appendField(new Blockly.FieldNumber(0), "z_pos")
-        .appendField("over")
-        .appendField(new Blockly.FieldNumber(0), "duration")
-        .appendField("seconds");
-    this.setPreviousStatement(true, null);
-    this.setNextStatement(true, null);
-    this.setColour(90);
- this.setTooltip("");
- this.setHelpUrl("");
-    },
-  },
-  pythonGenerator: (block, python) => {
-    var number_x_pos = block.getFieldValue('x_pos');
-    var number_y_pos = block.getFieldValue('y_pos');
-    var number_z_pos = block.getFieldValue('z_pos');
-    var duration = block.getFieldValue('duration');
-    var code = 'goto_duration(cf, ' + number_x_pos + ',' + number_y_pos + ',' + number_z_pos + ',' + duration + ')\n';
-    return code;
-  },
-  javascriptGenerator: (block, js) => {
-    var x = block.getFieldValue('x_pos');
-    var y = block.getFieldValue('y_pos');
-    var z = block.getFieldValue('z_pos');
-    var duration = block.getFieldValue('duration');
+export const blockGoTo: RobartBlockDefinition = {
+	name: 'go_to',
+	block: {
+		init: function () {
+			this.appendDummyInput()
+				.appendField('go to X:')
+				.appendField(new Blockly.FieldNumber(0), 'x_pos')
+				.appendField('Y:')
+				.appendField(new Blockly.FieldNumber(0), 'y_pos')
+				.appendField('Z:')
+				.appendField(new Blockly.FieldNumber(0), 'z_pos')
+				.appendField('over')
+				.appendField(new Blockly.FieldNumber(3, 0.1), 'duration')
+				.appendField('seconds');
+			this.setPreviousStatement(true, null);
+			this.setNextStatement(true, null);
+			this.setColour(90);
+			this.setTooltip('Go To a desired position over a given duration.');
+			this.setHelpUrl('');
+		},
+	},
+	pythonGenerator: (block, _python) => {
+		var xPosition = block.getFieldValue('x_pos') as number;
+		var yPosition = block.getFieldValue('y_pos') as number;
+		var zPosition = block.getFieldValue('z_pos') as number;
+		var duration = block.getFieldValue('duration') as number;
+		var code = 'goto_duration(groupState, ' + xPosition + ',' + yPosition + ',' + zPosition + ',' + duration + ')\n';
+		return code;
+	},
+	javascriptGenerator: (block, _js) => {
+		var xPosition = block.getFieldValue('x_pos') as number;
+		var yPosition = block.getFieldValue('y_pos') as number;
+		var zPosition = block.getFieldValue('z_pos') as number;
+		var duration = block.getFieldValue('duration') as number;
 
-    return `duration += simulator.go_to_xyz_duration(group_state, ${x}, ${y}, ${z}, ${duration});\n`;
-  }
-}
+		return `simulator.goToXyzDuration(groupState, ${xPosition}, ${yPosition}, ${zPosition}, ${duration})\n`;
+	},
+};

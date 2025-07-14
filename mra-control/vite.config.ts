@@ -6,9 +6,18 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   plugins: [react()],
   assetsInclude: ['**/*.glb'],
+  base: "/MultiRobotArt/",
   resolve: {
     alias: {
       '@MRAControl': path.resolve(__dirname, './src'),
     },
+
   },
+  build: {
+    minify: false,
+    terserOptions: {
+      compress: false,
+      mangle: false,
+    },
+  }
 });

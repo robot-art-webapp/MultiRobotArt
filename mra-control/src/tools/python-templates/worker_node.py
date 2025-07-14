@@ -4,7 +4,8 @@ from std_msgs.msg import Int32
 from crazyflie_py import generate_trajectory
 import numpy as np
 from blocklyTranslations import *
-
+from types import SimpleNamespace
+from TimeHelper import TimeHelper # TODO add to files downloaded
 Hz = 30
 
 class worker_node(Node):
@@ -15,24 +16,13 @@ class worker_node(Node):
         num_nodes: number of nodes (threads) in total
         """
         super().__init__("worker_node_{}".format(id))
+        assert(isinstance(id, int))
         self.id = id
         self.num_nodes = num_nodes
         self.crazyflies = crazyflies
 
-        self.execution_ready_subscription(
-            Int32,
-            'ready',
-            self.ready_callback,
-            num_nodes + 1
-        )
-        self.execution_ready_publisher(
-            Int32,
-            'ready',
-            num_nodes + 1
-        )
         self.timer = self.create_timer(1/Hz, self.timer_callback)
-        self.ready_ids = set()
-        self.executing = False
+        self.timeHelper = TimeHelper(self)
         self.running = False
         self.done = False
     
@@ -41,8 +31,7 @@ class worker_node(Node):
         Inject Trajectory computation code here...
         """
         trajectories = []
-        
-        #TODO insert trajectories here...
+        ### -----Insert Trajectories Here-------
 
         return trajectories
 
@@ -51,20 +40,17 @@ class worker_node(Node):
             Upload trajectories to crazyflies one by one
         '''
 
-        # TODO: Currently doesn't support overlapping crazyflies as we will overwrite trajectories...
         for i, traj in enumerate(trajectories):
             for cf in crazyflies:
                 cf.uploadTrajectory(traj, i, 0)
 
-    def begin(self):
+    def start(self):
         """
-            Prepare for execution. Pre-compute trajectories and upload them to crazyflies
+            Start execution of blocks
         """
         trajectories = self.compute_trajectories()
         self.upload_trajectories(trajectories)
-        msg = Int32()
-        msg.data = self.id
-        self.ready_publisher.publish(msg)
+        self.execute_blocks()
 
     def time(self):
         return self.get_clock().now().nanoseconds / 1e9
@@ -76,35 +62,23 @@ class worker_node(Node):
         Typical format should be:
         
         start_time = 0.0
-        duration = 3.0
+        self.timeHelper.sleepUntil(start_time)
+        takeoff(crazyflies, height=1.0, duration=2.0)
+
+        start_time = 5.0
         self.wait_until(start_time)
-        for cf in self.crazyflies:
-            cf.takeoff(1.0, duration)
-        self.wait_until(start_time+duration)
+        land(crazyflies, height=0.0, duration=2.0)
+        
+        ...
 
-        where start_time, duration, and in the inner portion of the for loop are provided.
+        Where a new start time is added for each block.
         """
-        # BLOCKS...
-        pass
-
-    def ready_callback(self, msg):
-        self.ready_ids.add(msg.data)
+        groupState = SimpleNamespace(crazyflies=self.crazyflies, timeHelper=self.timeHelper)
+        ### ---------Insert Execution Code Here------------
+        
+        self.done = True
     
     def timer_callback(self):
         if not self.running:
-            self.begin()
+            self.start()
             self.running = True
-        if len(self.ready_ids) == self.num_nodes and not self.executing:
-            self.running = True
-            self.start_time = self.get_clock().now()
-            self.execute_blocks()
-            self.destroy_node()
-            self.done = True
-
-    def wait_until(self, end_time):
-        while self.time() < end_time:
-            rclpy.spin_once(self, timeout_sec=0)
-
-    def wait(self, time):
-        end_time = self.time() + time
-        self.wait_until(end_time)

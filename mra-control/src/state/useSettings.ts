@@ -1,36 +1,37 @@
-import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import {create} from 'zustand';
+import {createJSONStorage, persist} from 'zustand/middleware';
 
-export interface BlocklySettings {
-  categories: string[]; // TODO: Use a stricter type from the blockly category definitions
-}
+export type BlocklySettings = {
+	categories: string[]; 
+};
 
-export interface SimulationSettings {
-  mode: "light" | "dark";
-}
+export type SimulationSettings = {
+	mode: 'light' | 'dark';
+};
 
-export interface SettingsProperties {
-  blocklySettings: BlocklySettings;
-  simulationSettings: SimulationSettings;
-}
+export type SettingsProperties = {
+	blocklySettings: BlocklySettings;
+	simulationSettings: SimulationSettings;
+};
 
-export interface SettingsActions {}
+export type SettingsActions = Record<string, unknown>;
 
 type SettingsState = SettingsActions & SettingsProperties;
 
 export const useSettings = create<SettingsState>()(
-  persist(
-    (set, get) => ({
-      blocklySettings: {
-        categories: [],
-      },
-      simulationSettings: {
-        mode: "dark",
-      },
-    }),
-    {
-      name: 'settingsStore',
-      storage: createJSONStorage(() => sessionStorage),
-    },
-  ),
+	persist(
+		(set, get) => ({
+			blocklySettings: {
+				categories: [],
+			},
+			simulationSettings: {
+				mode: 'dark',
+			},
+		}),
+		{
+			name: 'settingsStore',
+			storage: createJSONStorage(() => sessionStorage),
+		},
+	),
 );
