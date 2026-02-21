@@ -20,7 +20,9 @@ class crazyflie_node(Node):
 # Inject Imports Here:
 
 def launch(nodes):
-    executor = rclpy.executors.MultiThreadedExecutor()
+    # Allocate extra threads because worker callbacks can block for long durations.
+    thread_count = max(8, len(nodes) * 2)
+    executor = rclpy.executors.MultiThreadedExecutor(num_threads=thread_count)
 
     for node in nodes:
         executor.add_node(node)
@@ -29,7 +31,7 @@ def launch(nodes):
     thread.start()
     try:
         while rclpy.ok():
-            pass
+            time.sleep(0.1)
     except KeyboardInterrupt:
         pass
     rclpy.shutdown()
@@ -52,7 +54,8 @@ def main():
 
     #   -----------Insert Nodes Here----------- 
 
-    nodes.append(crazyflie_node(swarm))
+    # nodes.append(crazyflie_node(swarm))
+    nodes.append(swarm.allcfs)
     # Launch all nodes
     return launch(nodes)
 

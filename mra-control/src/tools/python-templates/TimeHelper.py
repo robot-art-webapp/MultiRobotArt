@@ -1,4 +1,5 @@
 import rclpy
+import time
 
 class TimeHelper:
 
@@ -19,7 +20,7 @@ class TimeHelper:
         start = self.time()
         end = start + duration
         while self.time() < end:
-            pass
+            time.sleep(0.001)
             # rclpy.spin_once(self.node, timeout_sec=0)
 
     def sleepForRate(self, rateHz):
@@ -35,13 +36,13 @@ class TimeHelper:
             self.rateHz = rateHz
             self.nextTime = self.time() + 1.0 / rateHz
         while self.time() < self.nextTime:
-            pass
+            time.sleep(0.001)
             # rclpy.spin_once(self.node, timeout_sec=0)
         self.nextTime += 1.0 / rateHz
 
     def sleepUntil(self, end_time):
         while self.time() - self.zeroTime < end_time:
-            pass
+            time.sleep(0.001)
             # rclpy.spin_once(self.node, timeout_sec=0)
 
     def isShutdown(self):

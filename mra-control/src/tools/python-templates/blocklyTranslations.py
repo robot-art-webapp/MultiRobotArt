@@ -3,6 +3,7 @@ from types import SimpleNamespace
 import numpy as np
 from PIL import ImageColor
 import rclpy
+import time
 from crazyflieLoggers import *
 import rowan
 from scipy.spatial.transform import Rotation as R
@@ -10,6 +11,24 @@ from scipy.spatial.transform import Rotation as R
 import traceback
 
 Hz = 20
+
+
+def _safe_cf_position(cf, retries=50, retry_sleep=0.01):
+    """
+    Read Crazyflie position robustly while ROS pose callbacks are catching up.
+    """
+    last_error = None
+    for _ in range(retries):
+        try:
+            return cf.position()
+        except ValueError as e:
+            # Seen when pose cache is temporarily empty:
+            # "need at least one array to concatenate"
+            last_error = e
+            time.sleep(retry_sleep)
+    if last_error is not None:
+        raise last_error
+    return cf.position()
 
 ###
 #  Landing/Takeoff commands
@@ -198,13 +217,20 @@ def circle(groupState, radius, velocity, radians, direction):
 
     timesteps = np.arange(0, radians / velocity, 1 / Hz)
 
-    initialPositions = [cf.position() for cf in crazyflies]
+    # start positions bumped up by 1 meter in z
+    initialPositions = [
+        (pos[0], pos[1], pos[2]) if len(pos) >= 3 else pos
+        for pos in (cf.position() for cf in crazyflies)
+    ]
     for t in timesteps:
         for initPos, cf in zip(initialPositions, crazyflies):
             pos = np.array([fx(t), fy(t), fz(t)])
             pos += np.array(initPos)
             cf.cmdPosition(pos)
         timeHelper.sleepForRate(Hz)
+
+    # for cf in crazyflies:
+    #     cf.notifySetpointsStop()
 
 
 # Trajectory Modifiers...
@@ -361,7 +387,7 @@ def simCommand(originalGroupState, command):
         #         rclpy.spin_once(cf.node)
         # except Exception:
         #     cf.node.get_logger().error(traceback.format_exc())
-        simCrazyflies.append(CrazyflieSimLogger(cf.position()))
+        simCrazyflies.append(CrazyflieSimLogger(_safe_cf_position(cf)))
     simTimeHelper1 = TimeHelperSimLogger()
     simTimeHelper1.currTime = originalGroupState.timeHelper.time()
     simGroupState = SimpleNamespace(crazyflies=simCrazyflies, timeHelper=simTimeHelper1)
@@ -485,7 +511,7 @@ def addTrajectories(groupState, command1, command2):
     for cf1, cf2, realCf in zip(
         groupState1.crazyflies, groupState2.crazyflies, groupState.crazyflies
     ):
-        initial_position = np.array(realCf.position())
+        initial_position = np.array(_safe_cf_position(realCf))
         i1 = i2 = 0
         new_commands = []
         total_time = 0
